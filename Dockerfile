@@ -1,12 +1,24 @@
 FROM openjdk:8-jdk
 
 RUN apt-get update
-RUN apt-get install -y git curl vim net-tools sudo rsync
-RUN curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
+RUN apt-get install -y git curl vim net-tools sudo rsync gnupg build-essential
+RUN curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
 RUN apt-get install nodejs
 
 RUN npm install gulp -g
 RUN npm install bower -g
+RUN npm install grunt -g
+
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+RUN echo "deb http://repo.mongodb.org/apt/debian wheezy/mongodb-org/3.0 main" | tee /etc/apt/sources.list.d/mongodb-org-3.0.list
+RUN apt-get update
+RUN apt-get install -y mongodb-org
+
+RUN source /etc/profile.d/rvm.sh
+RUN rvm install ruby-2.4.1
+RUN gem install sass
+
+RUN echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
 
 RUN rm -rf /var/lib/apt/lists/*
 
@@ -65,6 +77,12 @@ EXPOSE 8080
 
 # will be used by attached slave agents:
 EXPOSE 50000
+
+# IPS
+EXPOSE 9000
+
+# mongodb
+EXPOSE 27017
 
 ENV COPY_REFERENCE_FILE_LOG $JENKINS_HOME/copy_reference_file.log
 
