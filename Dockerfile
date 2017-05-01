@@ -1,24 +1,16 @@
 FROM openjdk:8-jdk
 
 RUN apt-get update
-RUN apt-get install -y git curl vim net-tools sudo rsync gnupg build-essential
+RUN apt-get install -y git curl vim net-tools sudo rsync gnupg build-essential libssl-dev libreadline-dev zlib1g-dev rubygems
 RUN curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
 RUN apt-get install nodejs
 
-RUN npm install gulp -g
-RUN npm install bower -g
-RUN npm install grunt -g
+RUN npm install gulp bower grunt pm2 -g
 
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
 RUN echo "deb http://repo.mongodb.org/apt/debian wheezy/mongodb-org/3.0 main" | tee /etc/apt/sources.list.d/mongodb-org-3.0.list
 RUN apt-get update
 RUN apt-get install -y mongodb-org
-
-RUN source /etc/profile.d/rvm.sh
-RUN rvm install ruby-2.4.1
-RUN gem install sass
-
-RUN echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
 
 RUN rm -rf /var/lib/apt/lists/*
 
@@ -27,14 +19,30 @@ ENV JENKINS_SLAVE_AGENT_PORT 50000
 
 ARG user=jenkins
 ARG group=jenkins
-ARG uid=1000
-ARG gid=1000
+ARG uid=1001
+ARG gid=1001
 
 # Jenkins is run with user `jenkins`, uid = 1000
 # If you bind mount a volume from the host or a data container,
 # ensure you use the same uid
 RUN groupadd -g ${gid} ${group} \
     && useradd -d "$JENKINS_HOME" -u ${uid} -g ${gid} -m -s /bin/bash ${user}
+
+
+RUN mkdir ${JENKINS_HOME}/.ssh
+
+RUN echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ${JENKINS_HOME}/.ssh/config
+
+RUN git clone https://github.com/rbenv/rbenv.git ~/.rbenv
+RUN cd ~/.rbenv && src/configure && make -C src
+RUN echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+RUN echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ${JENKINS_HOME}/.bashrc
+RUN git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
+RUN ~/.rbenv/bin/rbenv install 2.4.1
+
+RUN gem install sass
+
+RUN echo blue > current_production
 
 # Jenkins home directory is a volume, so configuration and build history
 # can be persisted and survive image upgrades
